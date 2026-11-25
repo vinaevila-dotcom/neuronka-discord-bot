@@ -1,10 +1,9 @@
 services:
-  - type: worker
+  - type: web
     name: neuronka-discord-bot
-    runtime: python
+    runtime: docker
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python bot.py
+    healthCheckPath: /
     envVars:
       - key: DISCORD_TOKEN
         sync: false
