@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import aiohttp
+import aiohttp.web
 import discord
 
 BASE = Path(__file__).resolve().parent
@@ -38,6 +39,27 @@ SYSTEM_PROMPT = (
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
+web_started = False
+
+
+async def start_health_server() -> None:
+    """Небольшой HTTP-сервер, чтобы хостинг видел сервис живым."""
+    global web_started
+    if web_started:
+        return
+    app = aiohttp.web.Application()
+
+    async def health(request):
+        return aiohttp.web.Response(text="ok")
+
+    app.router.add_get("/", health)
+    app.router.add_get("/health", health)
+    runner = aiohttp.web.AppRunner(app)
+    await runner.setup()
+    site = aiohttp.web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", "10000")))
+    await site.start()
+    web_started = True
+    print("Health server запущен", flush=True)
 
 
 async def ask(message: str) -> str:
@@ -71,6 +93,7 @@ def split(text: str, size: int = 1900):
 @client.event
 async def on_ready():
     print(f"Бот запущен: {client.user} (серверов: {len(client.guilds)})", flush=True)
+    await start_health_server()
 
 
 @client.event
